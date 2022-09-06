@@ -1,33 +1,32 @@
+╔╗╔╗╔╗╔╗╔═══╗╔══╗╔╗╔══╗╔══╗╔╗╔══╗──╔══╗╔╗╔╗
+║║║║║║║║║╔═╗║║╔═╝║║║╔═╝╚╗╔╝║║║╔═╝──║╔╗║║║║║
+║╚╝║║║║║║╚═╝║║║──║╚╝║───║║─║╚╝║────║║║║║╚╝║
+╚═╗║║║║║║╔╗╔╝║║──║╔╗║───║║─║╔╗║────║║║║╚═╗║
+─╔╝║║╚╝║║║║║─║╚═╗║║║╚═╗╔╝╚╗║║║╚═╗╔╗║╚╝║──║║
+─╚═╝╚══╝╚╝╚╝─╚══╝╚╝╚══╝╚══╝╚╝╚══╝╚╝╚══╝──╚╝
+
 <?php
-error_reporting(0);
+//error_reporting(0);
 require 'Zendesk.php';
-
+namespace\Zendesk::class;
 $subdomain = "testyura";
-$username  = "up552195@gmail.com"; // replace this with your registered email
-$token     = "ztEr7S6jTBf6ZsGUoQacVDibc3r1xOosqQ7JCSp1"; // replace this with your token
+$username  = "up552195@gmail.com";
+$token     = "ztEr7S6jTBf6ZsGUoQacVDibc3r1xOosqQ7JCSp1";
 
+$zendesk = new Zendesk($token, $username, $subdomain);   // create class object
 
+$data    = $zendesk->call();  //receive data from the api
 
-$zendesk = new Zendesk($token, $username, $subdomain, $suffix = '.json', $test = true);
+$filename = 'openMe'.'.csv';  // name of our csv file
 
-$data    = $zendesk->call("/tickets", [], "GET");
-$ticketsS = $data ->tickets;
-$ticketsJ = json_encode($ticketsS[0]);
-$ticket = json_decode($ticketsJ);
+header('Content-type: text/csv');                                      //Header
+header('Content-Disposition: attachment; filename=' . $filename);     //Header
+header('Pragma: no-cache');                                          //Header
+header('Expires: 0');                                               //Header
 
+$fh = fopen('php://output', 'w');                          // open our file for writing
 
-
-$filename = 'tickets_' . '.csv';
-
-$fh = fopen('php://output', 'w');
-
-header('Content-type: text/csv');
-header('Content-Disposition: attachment; filename=' . $filename);
-header('Pragma: no-cache');
-header('Expires: 0');
-
-
-$keys = array(
+$keys = array(                      // keys for csv table
     '0' => 'Id',
     '1' => 'Url',
     '2' => 'Created',
@@ -36,39 +35,35 @@ $keys = array(
     '5' => 'Subject',
     '6' => 'Description',
     '7' => 'Priority',
-    '8' => 'Status'
+    '8' => 'Status',
+    '9' => 'Requester',
+    '10' => 'Submitter',
+    '11' => 'Assignee',
+    '12' => 'Organization',
+    '13' => 'Group',
+    '14' => 'Tags',
+    '15' => 'Comments'
 );
-fputcsv($fh, $keys, ",", "\"");
-foreach($data->tickets as $result) {
+fputcsv($fh, $keys, ",", "\"");    // write keys in csv
 
-    $data2 = $zendesk->call("/organizations", [], "GET");
-    $orgS = $data2->organizations;
-    $orgJ = json_encode($orgS[0]);
-    $org = json_decode($ticketsJ);
+    foreach ($data->tickets as $result) {
 
-    $data3 = $zendesk->call("/users", [], "GET");
-    $usersS = $data3->users;
-    $usersJ = json_encode($usersS[0]);
-    $user = json_decode($usersJ);
+        $result = json_decode(json_encode($result), true);     // decode json data
 
-    $data4 = $zendesk->call("/groups", [], "GET");
-    $groupS = $data4->groups;
-    $groupsJ = json_encode($groupS[0]);
-    $group = json_decode($groupsJ);
+        $result = array(
+            'id' => $result['id'],
+            'url' => $result['url'],
+            'created_at' => $result['created_at'],
+            'updated_at' => $result['updated_at'],
+            'type' => $result['type'],
+            'subject' => $result['subject'],
+            'description' => $result['description'],
+            'priority' => $result['priority'],
+            'status' => $result['status'],
+
+        );
+        fputcsv($fh, $result, ",", "\"");    //write array in csv
+    }
 
 
-    $result = array(
-        'id' => $ticketsJ['id'],
-        'url' => $ticketsJ['url'],
-        'created_at' => $ticketsJ['created_at'],
-        'updated_at' => $ticketsJ['updated_at'],
-        'type' => $ticketsJ['type'],
-        'subject' => $ticketsJ['subject'],
-        'description' => $ticketsJ['description'],
-        'priority' => $ticketsJ['priority'],
-        'status' => $ticketsJ['status'],
-    );
 
-    fputcsv($fh, $result, ",", "\"");
-
-}
